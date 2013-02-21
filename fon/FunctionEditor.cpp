@@ -21,6 +21,7 @@
 #include "machine.h"
 #include "EditorM.h"
 #include "GuiP.h"
+#include "Movie.h"
 
 Thing_implement (FunctionEditor, Editor, 0);
 
@@ -448,6 +449,34 @@ static void menu_cb_getSelectionDuration (EDITOR_ARGS) {
 	EDITOR_IAM (FunctionEditor);
 	Melder_informationReal (my d_endSelection - my d_startSelection, my v_format_units ());
 }
+
+static void menu_cb_getFrames (EDITOR_ARGS) {
+    EDITOR_IAM (FunctionEditor);
+    if (my data) {
+        MelderInfo_open();
+        Movie movie = (Movie) my data;
+        // get # frames
+        long frameCount = movie -> nx;
+        // get frame duration
+        double frameDuration = movie -> dx;
+        double currentTime = 0;
+        for (int i=1; i<=frameCount; i++) {
+            if ((currentTime >= my d_startSelection) && (currentTime <= my d_endSelection)) {
+                
+                char buffer [10];
+                sprintf(buffer, "%d", i);
+                MelderInfo_write(L"frame number ");
+                MelderInfo_write(Melder_double(i));
+                MelderInfo_write(L"\n");
+                
+            }
+            if (currentTime > my d_endSelection) { break; }
+            currentTime += frameDuration;
+        }
+        MelderInfo_close();
+    }
+}
+
 
 /********** VIEW MENU **********/
 
@@ -985,6 +1014,7 @@ void structFunctionEditor :: v_createMenuItems_query (EditorMenu menu) {
 	EditorMenu_addCommand (menu, L"Get cursor", GuiMenu_F6, menu_cb_getCursor);
 	EditorMenu_addCommand (menu, L"Get end of selection", 0, menu_cb_getE);
 	EditorMenu_addCommand (menu, L"Get selection length", 0, menu_cb_getSelectionDuration);
+    EditorMenu_addCommand (menu, L"Get frames for selection", 0, menu_cb_getFrames);
 }
 
 void structFunctionEditor :: v_createMenus () {
