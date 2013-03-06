@@ -20,6 +20,9 @@
 #include "MovieWindow.h"
 #include "Preferences.h"
 #include "EditorM.h"
+#include "Movie.h"
+#include "melder.h"
+#include <iostream> // for debuggin'
 
 Thing_implement (MovieWindow, TimeSoundAnalysisEditor, 0);
 
@@ -27,16 +30,38 @@ Thing_implement (MovieWindow, TimeSoundAnalysisEditor, 0);
 
 void structMovieWindow :: v_createMenuItems_view (EditorMenu menu) {
 	MovieWindow_Parent :: v_createMenuItems_view (menu);
+    
 	//EditorMenu_addCommand (menu, L"-- view/realtier --", 0, 0);
 	//EditorMenu_addCommand (menu, v_setRangeTitle (), 0, menu_cb_setRange);
+    
+}
+
+static void menu_cb_setFrameDuration(EDITOR_ARGS) {
+    EDITOR_IAM (MovieWindow); // ???
+    Movie movie = (Movie) my data;
+    float dur = movie->dx;
+    EDITOR_FORM(L"Set Frame Duration", L"Set Frame Duration Dialog")
+        REAL(L"Frame Duration", Melder_double(dur))
+    EDITOR_OK
+        SET_REAL (L"Frame Duration", dur)
+        std::cout << "AND HERE\n";
+    EDITOR_DO
+        double d = GET_REAL(L"Frame Duration");
+        movie -> dx = d;
+        // redraw frames
+        FunctionEditor_redraw(me);
+    EDITOR_END
 }
 
 void structMovieWindow :: v_createMenus () {
 	MovieWindow_Parent :: v_createMenus ();
-	//EditorMenu menu = Editor_addMenu (this, L"Movie", 0);
+	EditorMenu menu = Editor_addMenu (this, L"Movie", 0);
+    
+    EditorMenu_addCommand(menu, L"Set frame duration", 0, menu_cb_setFrameDuration);
 	//EditorMenu_addCommand (menu, L"Add point at cursor", 'T', menu_cb_addPointAtCursor);
 	v_createMenus_analysis ();   // insert some of the ancestor's menus *after* the Movie menus
 }
+
 
 /********** DRAWING AREA **********/
 
