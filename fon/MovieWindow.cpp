@@ -22,9 +22,13 @@
 #include "EditorM.h"
 #include "Movie.h"
 #include "melder.h"
-#include <iostream> // for debuggin'
 
 Thing_implement (MovieWindow, TimeSoundAnalysisEditor, 0);
+
+// preferences for frames
+static struct {
+    int maxViewableFrames;
+} framepreferences;
 
 /********** MENU COMMANDS **********/
 
@@ -41,10 +45,9 @@ static void menu_cb_setFrameDuration(EDITOR_ARGS) {
     Movie movie = (Movie) my data;
     float dur = movie->dx;
     EDITOR_FORM(L"Set Frame Duration", L"Set Frame Duration Dialog")
-        REAL(L"Frame Duration", Melder_double(dur))
+        REAL(L"Frame Duration", Melder_double((double) dur))
     EDITOR_OK
         SET_REAL (L"Frame Duration", dur)
-        std::cout << "AND HERE\n";
     EDITOR_DO
         double d = GET_REAL(L"Frame Duration");
         movie -> dx = d;
@@ -53,13 +56,33 @@ static void menu_cb_setFrameDuration(EDITOR_ARGS) {
     EDITOR_END
 }
 
+
+static void menu_cb_setMaxViewableFrames(EDITOR_ARGS) {
+    EDITOR_IAM (MovieWindow);
+    Movie movie = (Movie) my data;
+    int maxFrames = framepreferences.maxViewableFrames;
+    EDITOR_FORM(L"Set Maximum Viewable Movie Frames", L"Dialogue for setting maximum number of frames that are rendered at once")
+        REAL(L"Maximum viewable frames", Melder_integer(maxFrames))
+    EDITOR_OK
+        SET_REAL(L"Maximum viewable frames", maxFrames);
+    EDITOR_DO
+        int newMaxFrames = GET_REAL(L"Maximum viewable frames");
+        framepreferences.maxViewableFrames = newMaxFrames;
+        FunctionEditor_redraw(me);
+    EDITOR_END
+}
+
+
 void structMovieWindow :: v_createMenus () {
 	MovieWindow_Parent :: v_createMenus ();
 	EditorMenu menu = Editor_addMenu (this, L"Movie", 0);
     
     EditorMenu_addCommand(menu, L"Set frame duration", 0, menu_cb_setFrameDuration);
+    EditorMenu_addCommand(menu, L"Set maximum number of viewable frames", 0, menu_cb_setMaxViewableFrames);
 	//EditorMenu_addCommand (menu, L"Add point at cursor", 'T', menu_cb_addPointAtCursor);
+    
 	v_createMenus_analysis ();   // insert some of the ancestor's menus *after* the Movie menus
+    
 }
 
 
@@ -85,26 +108,42 @@ void structMovieWindow :: v_draw () {
 		Graphics_resetViewport (d_graphics, viewport);
 	}
 	if (true) {
-		Graphics_Viewport viewport = Graphics_insetViewport (d_graphics, 0.0, 1.0, 0.0, 0.3);
+		Graphics_Viewport viewport = Graphics_insetViewport (d_graphics, 0.0, 1.0, 0.0, 0.3); // param5 changed from 0.3
 		Graphics_setColour (d_graphics, Graphics_WHITE);
-		Graphics_setWindow (d_graphics, 0, 1, 0, 1);
-		Graphics_fillRectangle (d_graphics, 0, 1, 0, 1);
+		Graphics_setWindow (d_graphics, 0, 1.0, 0, 1.0);
+		Graphics_fillRectangle (d_graphics, 0, 1.0, 0, 1.0);
 		Graphics_setColour (d_graphics, Graphics_BLACK);
-		Graphics_setWindow (d_graphics, d_startWindow, d_endWindow, 0.0, 1.0);
-		long firstFrame = round (Sampled_xToIndex (movie, d_startWindow));
-		long lastFrame = round (Sampled_xToIndex (movie, d_endWindow));
-		if (firstFrame < 1) firstFrame = 1;
-		if (lastFrame > movie -> nx) lastFrame = movie -> nx;
-		for (long iframe = firstFrame; iframe <= lastFrame; iframe ++) {
-			double time = Sampled_indexToX (movie, iframe);
-			double timeLeft = time - 0.5 * movie -> dx, timeRight = time + 0.5 * movie -> dx;
-			if (timeLeft < d_startWindow) timeLeft = d_startWindow;
-			if (timeRight > d_endWindow) timeRight = d_endWindow;
-			movie -> f_paintOneImageInside (d_graphics, iframe, timeLeft, timeRight, 0.0, 1.0);
-		}
-		Graphics_flushWs (d_graphics);
-		Graphics_resetViewport (d_graphics, viewport);
-	}
+        //Graphics_setWindow (d_graphics, d_startWindow, d_endWindow, 0.0, 1.0);
+        
+        if ((d_endWindow - d_startWindow) / movie->dx > framepreferences.maxViewableFrames) {
+            Graphics_setFont(d_graphics, kGraphics_font_HELVETICA);
+            Graphics_setFontSize(d_graphics, 10);
+            Graphics_setTextAlignment(d_graphics, Graphics_CENTRE, Graphics_HALF);
+            Graphics_text3(d_graphics, 0.5, 0.67, L"(To view movie frames, zoom in to at most ", Melder_half(framepreferences.maxViewableFrames * movie->dx), L" seconds,");
+            Graphics_text(d_graphics, 0.5, 0.33, L"or raise the maximum number of viewable frames setting under the Movie menu)");
+            Graphics_setFontSize(d_graphics, 12);
+            Graphics_flushWs(d_graphics);
+            Graphics_resetViewport(d_graphics, viewport);
+
+        } else {
+            Graphics_setWindow (d_graphics, d_startWindow, d_endWindow, 0.0, 1.0);
+            long firstFrame = round (Sampled_xToIndex (movie, d_startWindow));
+            long lastFrame = round (Sampled_xToIndex (movie, d_endWindow));
+            if (firstFrame < 1) firstFrame = 1;
+            if (lastFrame > movie -> nx) lastFrame = movie -> nx;
+            for (long iframe = firstFrame; iframe <= lastFrame; iframe ++) {
+                double time = Sampled_indexToX (movie, iframe);
+                double timeLeft = time - 0.5 * movie -> dx, timeRight = time + 0.5 * movie -> dx;
+                if (timeLeft < d_startWindow) timeLeft = d_startWindow;
+                if (timeRight > d_endWindow) timeRight = d_endWindow;
+                movie -> f_paintOneImageInside (d_graphics, iframe, timeLeft, timeRight, 0.0, 1.0);
+            }
+            Graphics_flushWs (d_graphics);
+            Graphics_resetViewport (d_graphics, viewport);
+        }
+        Graphics_flushWs(d_graphics);
+        Graphics_resetViewport(d_graphics, viewport);
+	} 
 	if (showAnalysis) {
 		Graphics_Viewport viewport = Graphics_insetViewport (d_graphics, 0.0, 1.0, 0.3, soundY);
 		v_draw_analysis ();
@@ -148,6 +187,7 @@ void structMovieWindow :: v_play (double a_tmin, double a_tmax) {
 void structMovieWindow :: f_init (const wchar_t *title, Movie movie) {
 	Melder_assert (movie != NULL);
 	structTimeSoundAnalysisEditor :: f_init (title, movie, movie -> d_sound, false);
+    framepreferences.maxViewableFrames = 10;
 }
 
 MovieWindow MovieWindow_create (const wchar_t *title, Movie movie) {

@@ -23,9 +23,11 @@
 #include "Movie.h"
 
 Thing_define (MovieWindow, TimeSoundAnalysisEditor) {
+        
 	// functions:
 		public:
 			void f_init (const wchar_t *title, Movie data);
+            int maxViewableFrames;
 	// overridden methods:
 		protected:
 			virtual void v_createMenus ();
