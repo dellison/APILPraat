@@ -55,7 +55,8 @@ void structMovie :: v_info ()
 
 void structMovie :: f_init (Sound sound, const wchar_t *folderName, Strings fileNames)
 {
-	Sampled_init (this, sound -> xmin, sound -> xmax, fileNames ? fileNames -> numberOfStrings : 0, 0.04, 0.0);
+	//Sampled_init (this, sound -> xmin, sound -> xmax, fileNames ? fileNames -> numberOfStrings : 0, 0.04, 0.0);
+    Sampled_init (this, sound -> xmin, sound -> xmax, fileNames ? fileNames -> numberOfStrings : 0, ((sound->xmax - sound->xmin) / (float)fileNames->numberOfStrings), 0.0);
 	d_sound = sound;
 	d_folderName = Melder_wcsdup (folderName);
 	d_fileNames = fileNames;
