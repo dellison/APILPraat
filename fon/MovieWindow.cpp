@@ -133,7 +133,8 @@ void structMovieWindow :: v_draw () {
             if (lastFrame > movie -> nx) lastFrame = movie -> nx;
             for (long iframe = firstFrame; iframe <= lastFrame; iframe ++) {
                 double time = Sampled_indexToX (movie, iframe);
-                double timeLeft = time - 0.5 * movie -> dx, timeRight = time + 0.5 * movie -> dx;
+                //double timeLeft = time - 0.5 * movie -> dx, timeRight = time + 0.5 * movie -> dx;
+                double timeLeft = time, timeRight = time + movie -> dx;
                 if (timeLeft < d_startWindow) timeLeft = d_startWindow;
                 if (timeRight > d_endWindow) timeRight = d_endWindow;
                 movie -> f_paintOneImageInside (d_graphics, iframe, timeLeft, timeRight, 0.0, 1.0);
