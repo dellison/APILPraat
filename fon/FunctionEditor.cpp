@@ -461,7 +461,8 @@ static void menu_cb_getFrames (EDITOR_ARGS) {
         double frameDuration = movie -> dx;
         double currentTime = 0;
         for (int i=1; i<=frameCount; i++) {
-            if ((currentTime >= my d_startSelection) && (currentTime <= my d_endSelection)) {
+            if ((currentTime + frameDuration >= my d_startSelection) && (currentTime <= my d_endSelection)
+                || (currentTime - frameDuration >= my d_startSelection) && (currentTime <= my d_endSelection)) {
                 
                 char buffer [10];
                 sprintf(buffer, "%d", i);
